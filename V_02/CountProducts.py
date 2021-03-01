@@ -8,15 +8,16 @@ import numpy as np
     - Default: weight_name, config_name, classess_names
     important: please change it if not working correct
 '''
-WEIGHT_NAME = './Files/yolov3_03.weights'
-CONF_NAME = './Files/yolov3_03.cfg'
-CLASSES_NAMES = './Files/yolov3_03.txt'
+WEIGHT_NAME = './Files/yolov3_customTrain.weights'
+CONF_NAME = './Files/yolov3_customTrain.cfg'
+CLASSES_NAMES = './Files/yolov3_customTrain.txt'
 
 LEFT_REGION = 10
 RIGHT_REGION = 200
 TOP_REGION = 100
 BOTTOM_REGION = 300
 THIN_REGION = 5
+MARGIN_END = 10
 CORLOR = [51, 255, 102] # GREEN
 
 '''
@@ -35,6 +36,8 @@ class CountProducts:
         self.right_region = RIGHT_REGION
         self.top_region = TOP_REGION
         self.bottom_region = BOTTOM_REGION
+        # initial variable flow_distance
+        self.flow_distance = -1
 
     # Set it if you want
     def fun_set_weight_conf_classes(self, weight_name, conf_name, classes_names):
@@ -89,9 +92,9 @@ class CountProducts:
         else:
             label = str(self.classes[class_id])
             color = self.COLORS[class_id]
-        cv2.rectangle(img, (x, y), (x_plus_w, y_plus_h), color, 2)
+        cv2.rectangle(img, (x, y), (x_plus_w, y_plus_h), color, 1)
         cv2.putText(img, label, (x - 10, y - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
 
     '''
     Hàm nhận diện đối tượng
@@ -216,13 +219,148 @@ class CountProducts:
             image = libs.fun_reduceSizeImage(frame, reduce_size)
 
             # Draw Region
-            self.fun_drawRegion(image)
+            # self.fun_drawRegion(image)
+            # cv2.rectangle(frame, (self.left_region, self.top_region), (self.right_region, self.bottom_region), color, 2)
 
             # Detect Logo
-            # image, _ = self.fun_DetectObject(image)
+            image, _ = self.fun_DetectObject(image)
 
             # show
             cv2.imshow(frame_show_name, image)
+
+            # wait
+            if cv2.waitKey(fps) & 0xFF == ord('q'):
+                break
+
+            # Skip frame ?
+            self.fun_skip_frame(cap, skip_frame)
+
+            # next frame
+            isContinue, frame = cap.read()
+
+    def fun_isInside_and_isValid(self, imageGet: list):
+        isCount = True
+        isPass = False
+
+        # truong hop khong detect duoc products
+        if len(imageGet) == 0:
+            return isCount, isPass
+
+        # remove outsize box
+        for product in imageGet:
+            pro = product[1]
+            # x, y so sanh
+            if pro[0] >= self.top_region and pro[0] <= self.bottom_region and pro[2] >= self.left_region and pro[2] <= self.right_region:
+                continue
+            imageGet.remove(product)
+
+        # truong hop da remove sach products
+        if len(imageGet) == 0:
+            return isCount, isPass
+        else:
+            isCount = True
+
+        ''' 
+            Neu detect ra nhieu hon 1 product tren chuoi day chuyen
+            B1: thuc hien chon ra 1 product nam trong (box) co (x, y) la lon nhat 
+            B2: product can vach MARGIN_END
+        '''
+        # Buoc 1 tim max (x, y)
+        product_max = imageGet[0][1]
+        for i in range(1, len(imageGet)):
+            pro = imageGet[i][1]
+            # y, yh, x, xw (pro[3] ~ xw)
+            if pro[3] >= product_max[3] + MARGIN_END:
+                product_max = pro
+        
+        # Buoc 2 product can vach MARGIN_END ?
+        if product_max[3] >= self.right_region - MARGIN_END:
+            self.last_pass = self.right_region - MARGIN_END
+            isPass = True
+        
+        # Final Check ??
+
+        return isCount, isPass
+
+    def fun_flow_product(self, imageGet: list):
+        # remove outsize box
+        for product in imageGet:
+            pro = product[1]
+            # x, y so sanh
+            if pro[0] >= self.top_region and pro[0] <= self.bottom_region and pro[2] >= self.left_region and pro[2] <= self.right_region:
+                continue
+            imageGet.remove(product)
+
+        # truong hop da remove sach products
+        if len(imageGet) == 0:
+            return False
+
+        if self.flow_distance == -1:
+            pro = imageGet[0][1]
+            self.flow_distance = pro[2]
+            return True
+        
+        if len(imageGet) == 1:
+            pro = imageGet[0][1]
+            if self.flow_distance - pro[2] >=  50 + MARGIN_END:
+                self.flow_distance = pro[2]
+                return True
+            if pro[2] - self.flow_distance <= 50 + MARGIN_END:
+                self.flow_distance = pro[2]
+        
+        if len(imageGet) > 1:
+            # tim distance nho nhat va cap nhat flow_distance
+            product_min = imageGet[0][1]
+            for i in range(1, len(imageGet)):
+                pro = imageGet[i][1]
+                # y, yh, x, xw (pro[3] ~ xw)
+                if pro[2] < product_min[2] + MARGIN_END:
+                    product_min = pro
+            
+            if self.flow_distance - product_min[2] >=  50 + MARGIN_END:
+                self.flow_distance = product_min[2]
+                return True
+        
+        return False
+
+    '''
+        Detect logo with a video
+        @param: reduce_size: float: select 1 if you want keep original size, 0.5 if you want haft part size, 0.2, 0.7, ...
+    '''
+    def fun_detect_logo_digitech_video_and_count(self, url: any = 0, reduce_size: float = 1, skip_frame: int= -1, frame_show_name: str= 'Logo_Detection', fps: int= 1, pathSave: str= None):
+        cap = cv2.VideoCapture(url)
+        isContinue, frame = cap.read()
+        countProduct = 0
+        if not isContinue:
+            return
+        wr = None
+        image = libs.fun_reduceSizeImage(frame, reduce_size)
+        if pathSave is not None:
+            h, w, _ = image.shape
+            wr = cv2.VideoWriter(pathSave, cv2.VideoWriter_fourcc(*'MJPG'), 30, (w, h))
+        while isContinue:
+            # Reduce Size Image
+            image = libs.fun_reduceSizeImage(frame, reduce_size)
+
+            # Draw Region
+            # self.fun_drawRegion(image)
+            cv2.rectangle(image, (self.left_region, self.top_region), (self.right_region, self.bottom_region), CORLOR, 2)
+
+            # Detect Logo
+            image, imageGet = self.fun_DetectObject(image)
+
+            # is Inside Box
+            isNext = self.fun_flow_product(imageGet)
+            if isNext:
+                countProduct += 1
+
+            # show
+            image[25:65, :] *= 0
+            cv2.putText(image, 'Product Count: ' + str(countProduct), (50, 50),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, CORLOR, 1)
+            cv2.imshow(frame_show_name, image)
+            if pathSave is not None:
+                wr.write(image)
 
             # wait
             if cv2.waitKey(fps) & 0xFF == ord('q'):
