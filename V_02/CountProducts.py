@@ -8,16 +8,15 @@ import numpy as np
     - Default: weight_name, config_name, classess_names
     important: please change it if not working correct
 '''
-WEIGHT_NAME = './Files/yolov3_customTrain.weights'
-CONF_NAME = './Files/yolov3_customTrain.cfg'
+WEIGHT_NAME = './Files/datas/yolov3_customTrain_final.weights'
+CONF_NAME = './Files/datas/yolov3_customTrain.cfg'
 CLASSES_NAMES = './Files/yolov3_customTrain.txt'
 
 LEFT_REGION = 10
 RIGHT_REGION = 200
 TOP_REGION = 100
 BOTTOM_REGION = 300
-THIN_REGION = 5
-MARGIN_END = 10
+MIN_DISTANCE = 85
 CORLOR = [51, 255, 102] # GREEN
 
 '''
@@ -38,6 +37,7 @@ class CountProducts:
         self.bottom_region = BOTTOM_REGION
         # initial variable flow_distance
         self.flow_distance = -1
+        self.BOX_WIDTH = -1
 
     # Set it if you want
     def fun_set_weight_conf_classes(self, weight_name, conf_name, classes_names):
@@ -194,18 +194,18 @@ class CountProducts:
             cap.read()
             count -= 1
 
-    def fun_drawRegion(self, image):
-        # right region
-        image[self.top_region:self.bottom_region, self.right_region:self.right_region + THIN_REGION] = CORLOR
+    # def fun_drawRegion(self, image):
+    #     # right region
+    #     image[self.top_region:self.bottom_region, self.right_region:self.right_region + THIN_REGION] = CORLOR
 
-        # bottom region
-        image[self.bottom_region:self.bottom_region + THIN_REGION, self.left_region:self.right_region] = CORLOR
+    #     # bottom region
+    #     image[self.bottom_region:self.bottom_region + THIN_REGION, self.left_region:self.right_region] = CORLOR
 
-        # left region
-        image[self.top_region:self.bottom_region, self.left_region:self.left_region + THIN_REGION] = CORLOR
+    #     # left region
+    #     image[self.top_region:self.bottom_region, self.left_region:self.left_region + THIN_REGION] = CORLOR
 
-        # top region
-        image[self.top_region:self.top_region + THIN_REGION, self.left_region:self.right_region] = CORLOR
+    #     # top region
+    #     image[self.top_region:self.top_region + THIN_REGION, self.left_region:self.right_region] = CORLOR
 
     '''
         Detect logo with a video
@@ -238,58 +238,68 @@ class CountProducts:
             # next frame
             isContinue, frame = cap.read()
 
-    def fun_isInside_and_isValid(self, imageGet: list):
-        isCount = True
-        isPass = False
+    # def fun_isInside_and_isValid(self, imageGet: list):
+    #     isCount = True
+    #     isPass = False
 
-        # truong hop khong detect duoc products
-        if len(imageGet) == 0:
-            return isCount, isPass
+    #     # truong hop khong detect duoc products
+    #     if len(imageGet) == 0:
+    #         return isCount, isPass
 
-        # remove outsize box
-        for product in imageGet:
-            pro = product[1]
-            # x, y so sanh
-            if pro[0] >= self.top_region and pro[0] <= self.bottom_region and pro[2] >= self.left_region and pro[2] <= self.right_region:
-                continue
-            imageGet.remove(product)
+    #     # remove outsize box
+    #     for product in imageGet:
+    #         pro = product[1]
+    #         # x, y so sanh
+    #         if pro[0] >= self.top_region and pro[0] <= self.bottom_region and pro[2] >= self.left_region and pro[2] <= self.right_region:
+    #             continue
+    #         imageGet.remove(product)
 
-        # truong hop da remove sach products
-        if len(imageGet) == 0:
-            return isCount, isPass
+    #     # truong hop da remove sach products
+    #     if len(imageGet) == 0:
+    #         return isCount, isPass
+    #     else:
+    #         isCount = True
+
+    #     ''' 
+    #         Neu detect ra nhieu hon 1 product tren chuoi day chuyen
+    #         B1: thuc hien chon ra 1 product nam trong (box) co (x, y) la lon nhat 
+    #         B2: product can vach MARGIN_END
+    #     '''
+    #     # Buoc 1 tim max (x, y)
+    #     product_max = imageGet[0][1]
+    #     for i in range(1, len(imageGet)):
+    #         pro = imageGet[i][1]
+    #         # y, yh, x, xw (pro[3] ~ xw)
+    #         if pro[3] >= product_max[3] + MARGIN_END:
+    #             product_max = pro
+        
+    #     # Buoc 2 product can vach MARGIN_END ?
+    #     if product_max[3] >= self.right_region - MARGIN_END:
+    #         self.last_pass = self.right_region - MARGIN_END
+    #         isPass = True
+        
+    #     # Final Check ??
+
+    #     return isCount, isPass
+
+    def fun_update_BOX_WIDTH(self, pro):
+        if self.BOX_WIDTH == -1:
+            self.BOX_WIDTH = pro[3] - pro[2]
         else:
-            isCount = True
-
-        ''' 
-            Neu detect ra nhieu hon 1 product tren chuoi day chuyen
-            B1: thuc hien chon ra 1 product nam trong (box) co (x, y) la lon nhat 
-            B2: product can vach MARGIN_END
-        '''
-        # Buoc 1 tim max (x, y)
-        product_max = imageGet[0][1]
-        for i in range(1, len(imageGet)):
-            pro = imageGet[i][1]
-            # y, yh, x, xw (pro[3] ~ xw)
-            if pro[3] >= product_max[3] + MARGIN_END:
-                product_max = pro
-        
-        # Buoc 2 product can vach MARGIN_END ?
-        if product_max[3] >= self.right_region - MARGIN_END:
-            self.last_pass = self.right_region - MARGIN_END
-            isPass = True
-        
-        # Final Check ??
-
-        return isCount, isPass
+            width = pro[3] - pro[2]
+            self.BOX_WIDTH = (self.BOX_WIDTH + width) / 2
 
     def fun_flow_product(self, imageGet: list):
         # remove outsize box
+        imageGet_tmp = []
         for product in imageGet:
             pro = product[1]
             # x, y so sanh
             if pro[0] >= self.top_region and pro[0] <= self.bottom_region and pro[2] >= self.left_region and pro[2] <= self.right_region:
-                continue
-            imageGet.remove(product)
+                self.fun_update_BOX_WIDTH(pro)
+                imageGet_tmp.append(product.copy())
+        
+        imageGet = imageGet_tmp
 
         # truong hop da remove sach products
         if len(imageGet) == 0:
@@ -302,10 +312,10 @@ class CountProducts:
         
         if len(imageGet) == 1:
             pro = imageGet[0][1]
-            if self.flow_distance - pro[2] >=  50 + MARGIN_END:
+            if self.flow_distance - pro[2] >=  MIN_DISTANCE + self.BOX_WIDTH:
                 self.flow_distance = pro[2]
                 return True
-            if pro[2] - self.flow_distance <= 50 + MARGIN_END:
+            if pro[2] - self.flow_distance <= self.BOX_WIDTH:
                 self.flow_distance = pro[2]
         
         if len(imageGet) > 1:
@@ -314,10 +324,10 @@ class CountProducts:
             for i in range(1, len(imageGet)):
                 pro = imageGet[i][1]
                 # y, yh, x, xw (pro[3] ~ xw)
-                if pro[2] < product_min[2] + MARGIN_END:
+                if pro[2] < product_min[2]:
                     product_min = pro
             
-            if self.flow_distance - product_min[2] >=  50 + MARGIN_END:
+            if self.flow_distance - product_min[2] >=  MIN_DISTANCE + self.BOX_WIDTH:
                 self.flow_distance = product_min[2]
                 return True
         
