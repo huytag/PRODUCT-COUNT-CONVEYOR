@@ -8,16 +8,20 @@ import numpy as np
     - Default: weight_name, config_name, classess_names
     important: please change it if not working correct
 '''
-WEIGHT_NAME = './Files/datas/yolov3_customTrain_final.weights'
-CONF_NAME = './Files/datas/yolov3_customTrain.cfg'
-CLASSES_NAMES = './Files/yolov3_customTrain.txt'
-
-LEFT_REGION = 10
-RIGHT_REGION = 200
-TOP_REGION = 100
-BOTTOM_REGION = 300
-MIN_DISTANCE = 85
-CORLOR = [51, 255, 102] # GREEN
+# ---------- Name Dump JSON -------------------
+URL_LOAD_VIDEO = 'URL_LOAD_VIDEO'
+WEIGHT_NAME = 'WEIGHT_NAME'
+CLASSES_NAMES = 'CLASSES_NAMES'
+CONF_NAME = 'CONF_NAME'
+CORLOR = 'CORLOR'
+LEFT_REGION = 'LEFT_REGION'
+RIGHT_REGION = 'RIGHT_REGION'
+TOP_REGION = 'TOP_REGION'
+BOTTOM_REGION = 'BOTTOM_REGION'
+COPYRIGHT = 'COPYRIGHT'
+COPYRIGHT_COLOR = 'COPYRIGHT_COLOR'
+COPYRIGHT_FONT_SIZE = 'COPYRIGHT_FONT_SIZE'
+# ---------------------------------------------
 
 '''
     class detection logo using yolo_v3
@@ -27,26 +31,38 @@ CORLOR = [51, 255, 102] # GREEN
 class CountProducts:
 
     # Initial Contractor
-    def __init__(self, ):
-        self.weight_name = WEIGHT_NAME
-        self.conf_name = CONF_NAME
-        self.classes_names = CLASSES_NAMES
-        self.left_region = LEFT_REGION
-        self.right_region = RIGHT_REGION
-        self.top_region = TOP_REGION
-        self.bottom_region = BOTTOM_REGION
-        # initial variable flow_distance
-        self.flow_distance = -1
+    def __init__(self, CONFIG):
+        # Define color to put text
+        self.COLORS = CONFIG[CORLOR]
+        self.URL_LOAD_VIDEO = CONFIG[URL_LOAD_VIDEO]
         self.BOX_WIDTH = -1
+        self.flow_distance = -1
+        self.COPYRIGHT = CONFIG[COPYRIGHT]
+        self.COPYRIGHT_COLOR = CONFIG[COPYRIGHT_COLOR]
+        self.COPYRIGHT_FONT_SIZE = CONFIG[COPYRIGHT_FONT_SIZE]
+
+        self.__fun_set_weight_conf_classes(
+            weight_name= CONFIG[WEIGHT_NAME],
+            conf_name= CONFIG[CONF_NAME],
+            classes_names= CONFIG[CLASSES_NAMES]
+        )
+        self.__fun_set_LEFT_RIGHT_TOP_BOTTOM_REGION(
+            left_region= CONFIG[LEFT_REGION],
+            right_region= CONFIG[RIGHT_REGION],
+            top_region= CONFIG[TOP_REGION],
+            bottom_region= CONFIG[BOTTOM_REGION]
+        )
+
+        self.__fun_initial_CountProduct()
 
     # Set it if you want
-    def fun_set_weight_conf_classes(self, weight_name, conf_name, classes_names):
+    def __fun_set_weight_conf_classes(self, weight_name, conf_name, classes_names):
         self.weight_name = weight_name
         self.conf_name = conf_name
         self.classes_names = classes_names
     
     # Set it if you want
-    def fun_set_LEFT_RIGHT_TOP_BOTTOM_REGION(self, left_region, right_region, top_region, bottom_region):
+    def __fun_set_LEFT_RIGHT_TOP_BOTTOM_REGION(self, left_region, right_region, top_region, bottom_region):
         self.left_region = left_region
         self.right_region = right_region
         self.top_region = top_region
@@ -64,7 +80,7 @@ class CountProducts:
         and load weight
         and define color to put text
     '''
-    def fun_initial_yolov3(self, ):
+    def __fun_initial_CountProduct(self, ):
         # Load classes names
         self.classes = None
         with open(self.classes_names, 'r') as f:
@@ -73,10 +89,8 @@ class CountProducts:
         # Load weight name
         self.net = cv2.dnn.readNet(self.weight_name, self.conf_name)
 
-        # Define color to put text
-        self.COLORS = [[51, 255, 102]]
 
-    def get_output_layers(self, net):
+    def __get_output_layers(self, net):
         layer_names = net.getLayerNames()
         output_layers = [layer_names[i[0] - 1]
                          for i in net.getUnconnectedOutLayers()]
@@ -85,13 +99,12 @@ class CountProducts:
     '''
         functon draw into image a rectangle after detected
     '''
-    def draw_prediction(self, img, class_id, confidence, x, y, x_plus_w, y_plus_h):
+    def __draw_prediction(self, img, class_id, confidence, x, y, x_plus_w, y_plus_h):
         if type(class_id) is str:
             label = class_id
-            color = self.COLORS[0]
         else:
             label = str(self.classes[class_id])
-            color = self.COLORS[class_id]
+        color = self.COLORS
         cv2.rectangle(img, (x, y), (x_plus_w, y_plus_h), color, 1)
         cv2.putText(img, label, (x - 10, y - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
@@ -105,7 +118,7 @@ class CountProducts:
 
     @return: một danh sách các hình ảnh con, là các hình ảnh người đã được nhận dạng.
     '''
-    def fun_DetectObject(self, sourceImage, classesName=0, isShowDetectionFull: bool = False):
+    def __fun_DetectObject(self, sourceImage, classesName=0, isShowDetectionFull: bool = False):
         image = None
         width = None
         height = None
@@ -131,7 +144,7 @@ class CountProducts:
 
         self.net.setInput(blob)
 
-        outs = self.net.forward(self.get_output_layers(self.net))
+        outs = self.net.forward(self.__get_output_layers(self.net))
 
         class_ids = []
         confidences = []
@@ -168,7 +181,7 @@ class CountProducts:
             y = box[1]
             w = box[2]
             h = box[3]
-            self.draw_prediction(image, class_ids[i], confidences[i], round(
+            self.__draw_prediction(image, class_ids[i], confidences[i], round(
                 x), round(y), round(x + w), round(y + h))
             if class_ids[i] == classesName:
                 y = int(y)
@@ -189,7 +202,7 @@ class CountProducts:
         Select number of frame you want to skip
         Defaut I skip 5 frame for each detection
     '''
-    def fun_skip_frame(self, cap, count: int = 5):
+    def __fun_skip_frame(self, cap, count: int = 5):
         while count > -1:
             cap.read()
             count -= 1
@@ -211,7 +224,7 @@ class CountProducts:
         Detect logo with a video
         @param: reduce_size: float: select 1 if you want keep original size, 0.5 if you want haft part size, 0.2, 0.7, ...
     '''
-    def fun_detect_logo_digitech_video(self, url: any = 0, reduce_size: float = 1, skip_frame: int= -1, frame_show_name: str= 'Logo_Detection', fps: int= 1):
+    def __fun_detect_logo_digitech_video(self, url: any = 0, reduce_size: float = 1, skip_frame: int= -1, frame_show_name: str= 'Logo_Detection', fps: int= 1):
         cap = cv2.VideoCapture(url)
         isContinue, frame = cap.read()
         while isContinue:
@@ -282,21 +295,21 @@ class CountProducts:
 
     #     return isCount, isPass
 
-    def fun_update_BOX_WIDTH(self, pro):
+    def __fun_update_BOX_WIDTH(self, pro):
         if self.BOX_WIDTH == -1:
             self.BOX_WIDTH = pro[3] - pro[2]
         else:
             width = pro[3] - pro[2]
             self.BOX_WIDTH = (self.BOX_WIDTH + width) / 2
 
-    def fun_flow_product(self, imageGet: list):
+    def __fun_flow_product(self, imageGet: list):
         # remove outsize box
         imageGet_tmp = []
         for product in imageGet:
             pro = product[1]
             # x, y so sanh
             if pro[0] >= self.top_region and pro[0] <= self.bottom_region and pro[2] >= self.left_region and pro[2] <= self.right_region:
-                self.fun_update_BOX_WIDTH(pro)
+                self.__fun_update_BOX_WIDTH(pro)
                 imageGet_tmp.append(product.copy())
         
         imageGet = imageGet_tmp
@@ -312,7 +325,7 @@ class CountProducts:
         
         if len(imageGet) == 1:
             pro = imageGet[0][1]
-            if self.flow_distance - pro[2] >=  MIN_DISTANCE + self.BOX_WIDTH:
+            if self.flow_distance - pro[2] >= self.BOX_WIDTH:
                 self.flow_distance = pro[2]
                 return True
             if pro[2] - self.flow_distance <= self.BOX_WIDTH:
@@ -327,7 +340,7 @@ class CountProducts:
                 if pro[2] < product_min[2]:
                     product_min = pro
             
-            if self.flow_distance - product_min[2] >=  MIN_DISTANCE + self.BOX_WIDTH:
+            if self.flow_distance - product_min[2] >= self.BOX_WIDTH:
                 self.flow_distance = product_min[2]
                 return True
         
@@ -337,16 +350,16 @@ class CountProducts:
         Detect logo with a video
         @param: reduce_size: float: select 1 if you want keep original size, 0.5 if you want haft part size, 0.2, 0.7, ...
     '''
-    def fun_detect_logo_digitech_video_and_count(self, url: any = 0, reduce_size: float = 1, skip_frame: int= -1, frame_show_name: str= 'Logo_Detection', fps: int= 1, pathSave: str= None):
-        cap = cv2.VideoCapture(url)
+    def fun_startVideoAndCountObject(self, reduce_size: float = 1, skip_frame: int= -1, frame_show_name: str= 'Logo_Detection', fps: int= 1, pathSave: str= None):
+        cap = cv2.VideoCapture(self.URL_LOAD_VIDEO)
         isContinue, frame = cap.read()
         countProduct = 0
         if not isContinue:
             return
         wr = None
         image = libs.fun_reduceSizeImage(frame, reduce_size)
+        h, w, _ = image.shape
         if pathSave is not None:
-            h, w, _ = image.shape
             wr = cv2.VideoWriter(pathSave, cv2.VideoWriter_fourcc(*'MJPG'), 30, (w, h))
         while isContinue:
             # Reduce Size Image
@@ -354,20 +367,21 @@ class CountProducts:
 
             # Draw Region
             # self.fun_drawRegion(image)
-            cv2.rectangle(image, (self.left_region, self.top_region), (self.right_region, self.bottom_region), CORLOR, 2)
+            cv2.rectangle(image, (self.left_region, self.top_region), (self.right_region, self.bottom_region), self.COLORS, 2)
 
             # Detect Logo
-            image, imageGet = self.fun_DetectObject(image)
+            image, imageGet = self.__fun_DetectObject(image)
 
             # is Inside Box
-            isNext = self.fun_flow_product(imageGet)
+            isNext = self.__fun_flow_product(imageGet)
             if isNext:
                 countProduct += 1
 
             # show
             image[25:65, :] *= 0
             cv2.putText(image, 'Product Count: ' + str(countProduct), (50, 50),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, CORLOR, 1)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.COLORS, 1)
+            cv2.putText(image, self.COPYRIGHT, (20, h - 20), cv2.FONT_HERSHEY_COMPLEX, self.COPYRIGHT_FONT_SIZE, self.COPYRIGHT_COLOR, 1)
             cv2.imshow(frame_show_name, image)
             if pathSave is not None:
                 wr.write(image)
@@ -377,7 +391,7 @@ class CountProducts:
                 break
 
             # Skip frame ?
-            self.fun_skip_frame(cap, skip_frame)
+            self.__fun_skip_frame(cap, skip_frame)
 
             # next frame
             isContinue, frame = cap.read()

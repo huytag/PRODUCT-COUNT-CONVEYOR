@@ -1,0 +1,22 @@
+{
+    "URL_LOAD_VIDEO": "./Files/Videos/01_Classess_3Mien.mp4",
+    "WEIGHT_NAME": "./Files/01_Classess_3Mien/01_Classess_3Mien.weights",
+    "CONF_NAME": "./Files/01_Classess_3Mien/01_Classess_3Mien.cfg",
+    "CLASSES_NAMES": "./Files/01_Classess_3Mien/01_Classess_3Mien.txt",
+    "CORLOR": [
+        51,
+        255,
+        102
+    ],
+    "LEFT_REGION": 130,
+    "RIGHT_REGION": 440,
+    "TOP_REGION": 120,
+    "BOTTOM_REGION": 300,
+    "COPYRIGHT": "Digitech Solutions",
+    "COPYRIGHT_COLOR": [
+        0,
+        0,
+        0
+    ],
+    "COPYRIGHT_FONT_SIZE": 0.5
+}
