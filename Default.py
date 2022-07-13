@@ -15,7 +15,7 @@ CONFIG = {
     "RIGHT_REGION": 440,
     "TOP_REGION": 120,
     "BOTTOM_REGION": 300,
-    "COPYRIGHT": "Digitech Solutions",
+    "COPYRIGHT": "DTNCKH",
     "COPYRIGHT_COLOR": [51, 255, 102],
     "COPYRIGHT_FONT_SIZE": 0.5
 }
@@ -45,4 +45,4 @@ if __name__ == '__main__':
     countPros = cps.CountProducts(CONFIG)
     
     # Start App
-    countPros.fun_startVideoAndCountObject(fps= 1, skip_frame= 1, reduce_size= 1)
+    countPros.fun_startVideoAndCountObject(fps= 30, frame_show_name= "Count Products", pathSave= "Files/Videos/output.avi")

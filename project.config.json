@@ -1,18 +1,18 @@
 {
-    "URL_LOAD_VIDEO": "./Files/Videos/01_Classess_3Mien.mp4",
-    "WEIGHT_NAME": "./Files/01_Classess_3Mien/01_Classess_3Mien.weights",
-    "CONF_NAME": "./Files/01_Classess_3Mien/01_Classess_3Mien.cfg",
+    "URL_LOAD_VIDEO": "./Files/Videos/test_1.mp4",
+    "WEIGHT_NAME": "./Files/01_Classess_3Mien/tiny_13_07_2022.weights",
+    "CONF_NAME": "./Files/01_Classess_3Mien/tiny_13_07_2022.cfg",
     "CLASSES_NAMES": "./Files/01_Classess_3Mien/01_Classess_3Mien.txt",
     "CORLOR": [
         51,
         255,
         102
     ],
-    "LEFT_REGION": 130,
-    "RIGHT_REGION": 440,
-    "TOP_REGION": 120,
+    "LEFT_REGION": 220,
+    "RIGHT_REGION": 740,
+    "TOP_REGION": 55,
     "BOTTOM_REGION": 300,
-    "COPYRIGHT": "Digitech Solutions",
+    "COPYRIGHT": "De tai NCKH",
     "COPYRIGHT_COLOR": [
         0,
         0,

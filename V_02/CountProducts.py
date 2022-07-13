@@ -41,6 +41,10 @@ class CountProducts:
         self.COPYRIGHT_COLOR = CONFIG[COPYRIGHT_COLOR]
         self.COPYRIGHT_FONT_SIZE = CONFIG[COPYRIGHT_FONT_SIZE]
 
+        # count pros
+        self.currentPredict = -1
+        self.countPros = [0, 0, 0]
+
         self.__fun_set_weight_conf_classes(
             weight_name= CONFIG[WEIGHT_NAME],
             conf_name= CONFIG[CONF_NAME],
@@ -183,13 +187,14 @@ class CountProducts:
             h = box[3]
             self.__draw_prediction(image, class_ids[i], confidences[i], round(
                 x), round(y), round(x + w), round(y + h))
-            if class_ids[i] == classesName:
+            if class_ids[i] == classesName or True:
                 y = int(y)
                 yh = int(y + h)
                 x = int(x)
                 xw = int(x + w)
                 img = imgOriganal[y:yh, x:xw]
                 imgsGet.append([img, [y, yh, x, xw]])
+                self.currentPredict = class_ids[i]
             index += 1
 
         if isShowDetectionFull:
@@ -224,7 +229,7 @@ class CountProducts:
         Detect logo with a video
         @param: reduce_size: float: select 1 if you want keep original size, 0.5 if you want haft part size, 0.2, 0.7, ...
     '''
-    def __fun_detect_logo_digitech_video(self, url: any = 0, reduce_size: float = 1, skip_frame: int= -1, frame_show_name: str= 'Logo_Detection', fps: int= 1):
+    def __fun_detect_logo_test_video(self, url: any = 0, reduce_size: float = 1, skip_frame: int= -1, frame_show_name: str= 'Logo_Detection', fps: int= 1):
         cap = cv2.VideoCapture(url)
         isContinue, frame = cap.read()
         while isContinue:
@@ -340,10 +345,14 @@ class CountProducts:
                 if pro[2] < product_min[2]:
                     product_min = pro
             
+            print('x-min: ', product_min[2])
+            print('flow_distance: ', self.flow_distance)
+            print('BOX_WIDTH: ', self.BOX_WIDTH)
+            print('------------------')
             if self.flow_distance - product_min[2] >= self.BOX_WIDTH:
                 self.flow_distance = product_min[2]
                 return True
-        
+            self.flow_distance = product_min[2]
         return False
 
     '''
@@ -353,7 +362,6 @@ class CountProducts:
     def fun_startVideoAndCountObject(self, reduce_size: float = 1, skip_frame: int= -1, frame_show_name: str= 'Logo_Detection', fps: int= 1, pathSave: str= None):
         cap = cv2.VideoCapture(self.URL_LOAD_VIDEO)
         isContinue, frame = cap.read()
-        countProduct = 0
         if not isContinue:
             return
         wr = None
@@ -374,14 +382,22 @@ class CountProducts:
 
             # is Inside Box
             isNext = self.__fun_flow_product(imageGet)
-            if isNext:
-                countProduct += 1
+            if isNext and self.currentPredict != -1:
+                self.countPros[self.currentPredict] += 1
 
             # show
-            image[25:65, :] *= 0
-            cv2.putText(image, 'Product Count: ' + str(countProduct), (50, 50),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, self.COLORS, 1)
-            cv2.putText(image, self.COPYRIGHT, (20, h - 20), cv2.FONT_HERSHEY_COMPLEX, self.COPYRIGHT_FONT_SIZE, self.COPYRIGHT_COLOR, 1)
+            # image[25:65, :] *= 0
+            cv2.putText(image, 'Product Count: ' + str(self.countPros[0]), (10, 20),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, [255, 255, 255], 1)
+
+            cv2.putText(image, 'Product Count: ' + str(self.countPros[1]), (10, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, [13, 213, 228], 1)
+
+            cv2.putText(image, 'Product Count: ' + str(self.countPros[2]), (10, 60),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, [183, 183, 183], 1)
+                    
+            cv2.putText(image, self.COPYRIGHT, (10, h - 10), cv2.FONT_HERSHEY_COMPLEX, self.COPYRIGHT_FONT_SIZE, [255, 255, 255], 1)
+            cv2.putText(image, "HUFI - HO CHI MINH", (650, h - 10), cv2.FONT_HERSHEY_COMPLEX, self.COPYRIGHT_FONT_SIZE, [255, 255, 255], 1)
             cv2.imshow(frame_show_name, image)
             if pathSave is not None:
                 wr.write(image)
@@ -395,3 +411,7 @@ class CountProducts:
 
             # next frame
             isContinue, frame = cap.read()
+        
+        cap.release()
+        wr.release()
+        cv2.destroyAllWindows()
