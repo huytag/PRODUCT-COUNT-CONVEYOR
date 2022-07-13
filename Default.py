@@ -5,6 +5,7 @@ import os
 
 URL_FILE_CONFIG = './project.config.json'
 
+
 CONFIG = {
     "URL_LOAD_VIDEO": "./Files/Videos/01_Classess_3Mien.mp4",
     "WEIGHT_NAME": "./Files/01_Classess_3Mien/01_Classess_3Mien.weights",
